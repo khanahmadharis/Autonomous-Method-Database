@@ -1,0 +1,929 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Autonomous Method Lifecycle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: same world as Pharma Pipeline Map. Black frame, white canvas, 1px black rules, square corners, flat catalog tints, yellow stickers, red kept for the single run button, classic link blue. Single light theme by design. */
+:root{
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#f2f2f2; --line:#000000; --ink:#000000; --muted:#333333; --faint:#555555;
+  --red:#dc1523; --yellow:#fcc20f; --link:#0000ee;
+  --t-olive:#8e8a25; --t-sage:#b3bd95; --t-salmon:#d77a7a; --t-peach:#e6915d; --t-lime:#c0d4a7; --t-sky:#9ab6c8; --t-steel:#a5b8c0; --t-peri:#8c9ae0;
+  --today:#e6915d; --future:#c0d4a7; --mode:var(--future); --mode-soft:var(--future);
+  --f-display:"Outfit",-apple-system,system-ui,"Segoe UI",sans-serif;
+  --f-body:"Outfit",-apple-system,system-ui,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{background:#000}
+body{margin:8px;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body.today{--mode:var(--today);--mode-soft:var(--today)}
+::selection{background:var(--yellow);color:#000}
+:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+a{color:var(--link)}
+.wrap{max-width:1400px;margin:0 auto;padding-inline:24px;padding-block:8px 96px;display:flex;flex-direction:column;gap:0}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;color:#000}
+h1{font-size:40px;line-height:1.02;letter-spacing:-.03em;font-weight:600}
+h2{font-size:28px;line-height:1.1;letter-spacing:-.025em;font-weight:600}
+h3{font-size:18px;line-height:1.3;letter-spacing:-.01em;font-weight:600}
+@media (min-width:900px){h1{font-size:52px}h2{font-size:32px}}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#000}
+.lede{color:#000;max-width:60ch;font-size:17px;line-height:1.5}
+.mono{font-family:var(--f-mono)}
+button{font:inherit;color:inherit}
+.sticker{color:#000;font-weight:500;font-size:10.5px;font-family:var(--f-mono);letter-spacing:.08em;text-transform:uppercase;background:var(--yellow);border:1px solid #000;padding:1px 6px;display:inline-block;transform:rotate(-2deg);white-space:nowrap}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:#000;color:#fff}
+.bar-in{max-width:1400px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand .logo{width:32px;height:32px;background:var(--yellow);display:grid;place-items:center;color:#000;font-weight:600;font-size:11px;font-family:var(--f-mono)}
+.brand b{display:block;font-size:15px;font-weight:600;line-height:1.2}
+.brand small{display:block;font-size:12.5px;color:#bbb;font-family:var(--f-mono)}
+.switch{display:inline-flex;gap:6px}
+.switch button{border:1px solid #fff;background:#000;color:#fff;padding:8px 14px;cursor:pointer;font-weight:500;font-size:14px;display:flex;gap:8px;align-items:center;transition:background .3s var(--ease)}
+.switch button .dot{width:10px;height:10px;border:1px solid #fff}
+#m-today .dot{background:var(--today)} #m-future .dot{background:var(--future)}
+.switch button:hover{background:#222}
+.switch button[aria-pressed="true"]{background:#fff;color:#000;border-color:#fff}
+.switch button[aria-pressed="true"] .dot{border-color:#000}
+
+/* sections */
+.sec{margin-top:64px;padding-top:24px;border-top:1px solid #000;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:12px 48px;align-items:start}
+.sec.wide{grid-template-columns:1fr}
+.sec.wide .sec-head .lede{max-width:70ch}
+.sec-head{display:flex;flex-direction:column;gap:12px}
+.sec-head h2{display:inline-block;justify-self:start;align-self:start;padding:8px 12px;border:1px solid #000;font-size:24px;line-height:1.1}
+#lifecycle .sec-head h2{background:var(--t-sage)}
+#run .sec-head h2{background:var(--t-salmon)}
+#hub .sec-head h2{background:var(--t-peach)}
+#foundations .sec-head h2{background:var(--t-peri)}
+#glossary .sec-head h2{background:var(--t-sky)}
+.sec-head .lede{font-size:15px}
+.sec-body{min-width:0}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:24px 64px;align-items:end;margin:56px 0 8px}
+.hero > *{min-width:0}
+.hero-copy{display:flex;flex-direction:column;gap:16px}
+.hero-copy h1 em{font-style:normal;background:var(--mode);padding:0 .12em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.scope{border:1px solid #000;background:var(--t-steel);padding:12px;margin:0}
+.scope-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.scope canvas{width:100%;height:230px;display:block;background:#fff;border:1px solid #000}
+.scope-foot{display:flex;gap:6px 16px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12.5px;color:#000;padding-top:8px}
+.scope-foot b{font-weight:500}
+.defs{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #000;background:var(--t-sky)}
+.def{padding:10px 14px 12px}
+.def + .def{border-left:1px solid #000}
+.def p{color:#000;font-size:14.5px;margin-top:4px;line-height:1.5}
+
+/* lifecycle */
+.life{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.ring-box{border:1px solid #000;background:var(--t-steel);padding:12px}
+.ring-box svg{width:100%;height:auto;display:block;background:#fff;border:1px solid #000}
+.node{cursor:pointer}
+.node rect.base{stroke:#000;stroke-width:1.5;transition:transform .3s var(--ease)}
+.node.on rect.base{stroke:var(--red);stroke-width:3}
+.node:hover rect.base{stroke-width:2.5}
+.node text{fill:#000;font-family:var(--f-display);font-weight:600;font-size:15px;text-anchor:middle;pointer-events:none}
+.node .numc{fill:var(--yellow);stroke:#000;stroke-width:1}
+.node text.num{font-family:var(--f-mono);font-size:11px;font-weight:500}
+.ring-seg{fill:none;stroke:#000;stroke-width:3}
+.spoke{stroke:#000;stroke-width:1.2;transition:opacity .4s}
+.gap-lbl{font-family:var(--f-mono);font-size:10.5px;fill:#000;text-anchor:middle}
+.gap-bg{fill:var(--yellow);stroke:#000;stroke-width:1}
+.hub-t{font-family:var(--f-display);font-weight:600;text-anchor:middle;fill:#000}
+.hub-s{font-family:var(--f-mono);font-size:10.5px;text-anchor:middle;fill:#000}
+.chips{display:none;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chips button,.chip{border:1px solid #000;background:#fff;padding:7px 12px;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .3s var(--ease)}
+.chips button:hover{background:var(--yellow)}
+.chips button[aria-pressed="true"]{background:#000;color:#fff}
+.legend{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:12.5px;color:#000;padding:10px 2px 0;font-family:var(--f-mono)}
+.legend i{display:inline-block;width:22px;height:0;border-top:3px solid #000;vertical-align:middle;margin-right:6px}
+body.today .legend i{border-top-style:dashed}
+
+.panel{border:1px solid #000;background:#fff;display:flex;flex-direction:column}
+.panel-top{padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #000;background:var(--mode);transition:background .3s var(--ease)}
+.panel-top .row{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.panel-top h3{font-size:26px;letter-spacing:-.02em}
+.panel-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:18px}
+.plain{color:#000;font-size:15px}
+.list-h{font-family:var(--f-mono);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#000;margin-bottom:6px}
+ul.pts{margin:0;padding:0;list-style:none;border-top:1px solid #000}
+ul.pts li{padding:10px 0 10px 24px;position:relative;border-bottom:1px solid #000;font-size:15px;line-height:1.5}
+ul.pts li::before{content:"";position:absolute;left:2px;top:17px;width:10px;height:10px;background:var(--mode);border:1px solid #000}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #000}
+.facts div{padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.facts div + div{border-left:1px solid #000}
+.facts span:last-child{font-size:14px}
+.auto{display:flex;flex-direction:column;gap:6px}
+.meter{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.meter i{height:12px;background:#fff;border:1px solid #000}
+.meter i.t{background:var(--today)}
+.meter i.f{background:var(--future)}
+.meter-lbl{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:11px;color:#000}
+.auto-row{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:center;font-family:var(--f-mono);font-size:12px}
+.note{font-size:13px;color:#000}
+
+/* console */
+.run-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.console{background:#000;color:#fff;font-family:var(--f-mono);font-size:13px;line-height:1.6;min-height:320px;display:flex;flex-direction:column;border:1px solid #000}
+.console-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #fff;flex-wrap:wrap;font-size:12px;color:#bbb}
+.console-log{padding:12px 14px;display:flex;flex-direction:column;gap:8px;overflow:auto;max-height:420px}
+.ln{display:grid;grid-template-columns:86px 1fr;gap:12px;animation:in .35s var(--ease) both}
+.ln .tag{color:#000;background:var(--yellow);text-transform:uppercase;font-size:10.5px;padding:1px 6px;align-self:start;text-align:center;border:1px solid #fff}
+.ln.f .tag{background:var(--future)}.ln.t .tag{background:var(--today)}
+.ln b{color:var(--yellow);font-weight:500}
+.ln .warn{color:#ff8a80}.ln .ok{color:var(--future)}
+@keyframes in{from{opacity:.2;transform:translateY(3px)}to{opacity:1;transform:none}}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btn{border:1px solid #000;background:#fff;color:#000;padding:9px 16px;cursor:pointer;font-weight:500;font-size:14px;transition:background .3s var(--ease),transform .15s var(--ease)}
+.btn:hover{background:var(--yellow)}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.primary:hover{background:#c8101c}
+
+/* hub systems */
+.sys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #000;border-left:1px solid #000}
+.sys div{padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0;border-right:1px solid #000;border-bottom:1px solid #000;transition:background .3s var(--ease)}
+.sys div:hover{background:var(--t-lime)}
+.sys .abbr{align-self:start;font-family:var(--f-mono);font-size:11px;font-weight:500;border:1px solid #000;padding:2px 7px;background:var(--t-steel)}
+.sys p{font-size:14px;color:#000}
+.sys .flow{font-size:13.5px;border-top:1px solid #000;padding-top:8px;margin-top:auto}
+
+/* foundations */
+.found{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 48px;border-top:1px solid #000}
+.found article{padding:18px 0 20px;border-bottom:1px solid #000;display:grid;grid-template-columns:36px 1fr;gap:6px 14px;min-width:0}
+.found .n{width:24px;height:24px;border-radius:999px;background:var(--yellow);border:1px solid #000;font-family:var(--f-mono);font-size:11px;font-weight:500;display:grid;place-items:center;margin-top:2px}
+.found p{grid-column:2;color:#000;font-size:15px}
+.found .ex{grid-column:2;font-size:14px;background:var(--mode);border:1px solid #000;padding:10px 12px;color:#000;margin-top:4px;transition:background .3s var(--ease)}
+
+/* glossary */
+.gloss{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 32px;border-top:1px solid #000}
+.gloss div{border-bottom:1px solid #000;padding:12px 0}
+.gloss dt{font-family:var(--f-mono);font-weight:500;font-size:13px}
+.gloss dd{margin:2px 0 0;color:#000;font-size:14.5px;line-height:1.5}
+footer{color:#000;font-size:13px;border-top:1px solid #000;padding-top:16px;margin-top:64px;font-family:var(--f-mono)}
+
+@media (max-width:900px){.life{grid-template-columns:1fr}}
+@media (max-width:860px){
+  .hero,.sec{grid-template-columns:1fr}
+  .hero{margin:36px 0 8px}
+  .sys{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gloss{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:620px){
+  .wrap{padding-inline:16px}
+  .bar-in{padding-inline:16px}
+  .defs,.found,.sys,.gloss{grid-template-columns:1fr}
+  .def + .def{border-left:0;border-top:1px solid #000}
+  .chips{display:flex}
+  .facts{grid-template-columns:1fr}
+  .facts div + div{border-left:0;border-top:1px solid #000}
+  .panel-top,.panel-body{padding-inline:14px}
+  .ln{grid-template-columns:70px 1fr}
+  h1{font-size:34px}
+}
+/* 3D integration view */
+.x3-tools{display:flex;justify-content:space-between;align-items:center;gap:10px 20px;flex-wrap:wrap;margin-bottom:12px}
+.btn[aria-pressed="true"]{background:#000;color:#fff}
+.btn[aria-pressed="true"]:hover{background:#222}
+.x3-key{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12px}
+.x3-key i{display:inline-block;width:12px;height:12px;border:1px solid #000;vertical-align:-2px;margin-right:6px}
+.x3-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:start}
+.x3-stage{position:relative;height:620px;border:1px solid #000;background:#fff;overflow:hidden;touch-action:none;cursor:grab}
+.x3-stage:active{cursor:grabbing}
+.x3-stage canvas{display:block;width:100%;height:100%}
+.x3-labels{position:absolute;inset:0;pointer-events:none}
+.x3-lbl{position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:auto;border:1px solid #000;background:#fff;color:#000;font:500 11.5px/1.2 var(--f-mono);padding:3px 7px;white-space:nowrap;cursor:pointer;transition:opacity .25s var(--ease),background .2s}
+.x3-lbl:hover{background:var(--yellow)}
+.x3-lbl.stage{font-family:var(--f-display);font-weight:600;font-size:13px}
+.x3-lbl.hub{background:var(--yellow);font-size:13px;font-weight:600}
+.x3-lbl.site{background:var(--t-steel)}
+.x3-lbl.on{background:#000;color:#fff}
+.x3-lbl.dim{opacity:.28}
+.x3-lbl.hot{outline:2px solid var(--red);outline-offset:1px}
+.x3-layer-tags{position:absolute;right:10px;bottom:8px;font-size:11px;background:#fff;border:1px solid #000;padding:2px 7px}
+.x3-fallback[hidden]{display:none}
+.x3-fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;background:var(--surface-2)}
+.x3-panel .panel-top{background:var(--mode)}
+.x3-links{margin:0;padding:0;list-style:none;border-top:1px solid #000}
+.x3-links li{border-bottom:1px solid #000;padding:10px 0;display:grid;grid-template-columns:62px 1fr;gap:4px 12px;font-size:14px;line-height:1.45}
+.x3-links .sid{font:500 11px var(--f-mono);border:1px solid #000;padding:2px 5px;align-self:start;text-align:center;background:var(--t-steel)}
+.x3-links .dir{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.x3-links .std{font-family:var(--f-mono);font-size:11.5px;color:#000;background:var(--surface-2);border:1px solid #000;padding:1px 6px;justify-self:start}
+.x3-links .was{font-size:13px}
+.x3-links li > span:not(.sid){grid-column:2}
+.x3-links .what{grid-column:2}
+@media (max-width:1000px){.x3-grid{grid-template-columns:1fr}.x3-stage{height:520px}}
+@media (max-width:620px){.x3-stage{height:430px}.x3-lbl{font-size:10px;padding:2px 5px}.x3-lbl.stage{font-size:11px}}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="bar"><div class="bar-in">
+  <div class="brand"><span class="logo">DB</span><span><b>Autonomous Method Lifecycle</b><small>method database, today and fully digital</small></span></div>
+  <div class="switch" role="group" aria-label="View">
+    <button id="m-today" aria-pressed="false"><span class="dot"></span>Today</button>
+    <button id="m-future" aria-pressed="true"><span class="dot"></span>Fully digital</button>
+  </div>
+</div></div>
+
+<main class="wrap">
+
+<section class="hero">
+  <div class="hero-copy">
+    <h1>Every test on a medicine, run as one <em id="h-word">self-driving</em> system.</h1>
+    <p class="lede" id="hero-lede"></p>
+    <div class="defs">
+      <div class="def"><span class="eyebrow">An analytical method is</span><p>The recipe for measuring one quality of a medicine, such as its purity or how much of it has clumped together. Every batch is released on the strength of these results.</p></div>
+      <div class="def"><span class="eyebrow">A centralized method DB is</span><p>One home for everything about every method: why it exists, its parameters, versions, experiments, risks, results and where it runs, readable by people and by machines.</p></div>
+    </div>
+  </div>
+  <figure class="scope" style="margin:0">
+    <div class="scope-head">
+      <span class="eyebrow">Size-exclusion chromatogram · monoclonal antibody</span>
+      <span class="sticker" id="scope-pill">auto-integrated</span>
+    </div>
+    <canvas id="chrom" aria-label="Chromatogram with aggregate, monomer and fragment peaks"></canvas>
+    <figcaption class="scope-foot" id="scope-foot"></figcaption>
+  </figure>
+</section>
+
+<section id="lifecycle" class="sec wide">
+  <div class="sec-head">
+    <h2>From a question to a routine test, and back again</h2>
+    <p class="lede">A method is never finished. It is designed, proven, used every day, watched, and changed. Pick a step to see what happens there today and what it looks like when the data runs itself. Switch views with the control at the top.</p>
+  </div>
+  <div class="sec-body"><div class="life">
+    <div>
+      <div class="ring-box">
+        <svg id="ring" viewBox="0 0 600 560" role="img" aria-label="Lifecycle ring of eight steps around the method database"></svg>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="chips" id="chips" aria-label="Steps"></div>
+    </div>
+    <article class="panel" id="panel" aria-live="polite"></article>
+  </div></div>
+</section>
+
+<section id="integration" class="sec wide">
+  <div class="sec-head">
+    <h2>The lifecycle on top, the systems underneath, the labs at the bottom</h2>
+    <p class="lede">Every step of the lifecycle has to read from and write to other systems: where the method runs, where samples live, where results stream for monitoring. Drag to turn the model, scroll to zoom, and pick a step or a system to light up its connections.</p>
+  </div>
+  <div class="sec-body">
+    <div class="x3-tools">
+      <div class="btns" role="group" aria-label="3D view controls">
+        <button class="btn" id="x3-stream" aria-pressed="false">Show the monitoring stream</button>
+        <button class="btn" id="x3-spin" aria-pressed="true">Auto-rotate</button>
+        <button class="btn" id="x3-reset">Reset view</button>
+      </div>
+      <div class="x3-key mono">
+        <span><i class="k-layer" style="background:var(--t-sage)"></i>Lifecycle</span>
+        <span><i class="k-layer" style="background:var(--yellow)"></i>Method DB</span>
+        <span><i class="k-layer" style="background:#fff"></i>Systems</span>
+        <span><i class="k-layer" style="background:var(--t-steel)"></i>Labs and instruments</span>
+      </div>
+    </div>
+    <div class="x3-grid">
+      <div class="x3-stage" id="x3-stage">
+        <canvas id="x3-canvas" aria-label="3D model of the method lifecycle connected to lab systems and instruments"></canvas>
+        <div class="x3-labels" id="x3-labels"></div>
+        <div class="x3-fallback" id="x3-fallback" hidden>The 3D view needs WebGL, which this browser has turned off. The connection table beside it still lists every link.</div>
+        <div class="x3-layer-tags mono" aria-hidden="true"><span>drag to rotate · scroll to zoom</span></div>
+      </div>
+      <article class="panel x3-panel" id="x3-panel" aria-live="polite"></article>
+    </div>
+    <p class="note" style="margin-top:10px">Standards named here are examples of open lab-integration standards (SiLA 2, OPC UA LADS, Allotrope, AnIML). Which one fits depends on the instrument vendors and systems a company already runs.</p>
+  </div>
+</section>
+
+<section id="run" class="sec">
+    <div class="sec-head">
+      <h2>Watch a single test travel the whole loop</h2>
+      <p class="lede">A new method to measure antibody aggregates, from the first request to its first automatic improvement. Run it in both views and compare where it stops and waits.</p>
+      <div class="btns">
+        <button class="btn primary" id="run-btn">Run the example</button>
+        <button class="btn" id="step-btn">Next step</button>
+        <button class="btn" id="reset-btn">Reset</button>
+      </div>
+      <p class="note"><span class="sticker">Fictional example</span> Names, IDs and numbers are illustrative.</p>
+    </div>
+    <div class="sec-body"><div class="console">
+      <div class="console-head"><span id="con-title">methoddb://runs/R-0417</span><span id="con-state">idle</span></div>
+      <div class="console-log" id="log"></div>
+    </div></div>
+</section>
+
+<section id="hub" class="sec">
+  <div class="sec-head">
+    <h2>The method database sits between the systems a lab already has</h2>
+    <p class="lede" id="hub-lede"></p>
+  </div>
+  <div class="sec-body"><div class="sys" id="sys"></div></div>
+</section>
+
+<section id="foundations" class="sec">
+  <div class="sec-head">
+    <h2>Eight foundations that decide whether "fully digital" works</h2>
+    <p class="lede">Dashboards and AI are the visible part. They only work when the plumbing underneath is settled first. These are the points that come up again and again when labs try to automate method data.</p>
+  </div>
+  <div class="sec-body"><div class="found" id="found"></div></div>
+</section>
+
+<section id="glossary" class="sec">
+  <div class="sec-head">
+    <h2>The terms, in plain words</h2>
+  </div>
+  <div class="sec-body"><dl class="gloss" id="gloss"></dl></div>
+</section>
+
+<footer>A vision explainer for the pharmaceutical analytical community. The automation levels are an illustrative judgement, not measurements. Regulatory references: ICH Q2(R2), ICH Q12, ICH Q14, USP &lt;1220&gt;, 21 CFR Part 11, EU GMP Annex 11.</footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const STAGES=[
+ {id:"need",short:"Define need",name:"Define the need",phase:"Design",
+  plain:"A project needs to measure something about a medicine, for example how much of an antibody has clumped into aggregates. The team writes down what the measurement must achieve: the Analytical Target Profile (ATP).",
+  today:["Requests arrive by email, in meetings or through ticket systems, so nobody sees every open method request in one place.","The ATP is free text, often written after development has already started.","There is no search across existing methods, so teams rebuild methods that already exist."],
+  future:["Every request enters one intake. The system first checks the method library for a platform method that already meets the need.","A draft ATP is generated from the product type, specification limits and regulatory expectations. The scientist edits and signs it.","Duplicate requests are merged before any lab time is spent."],
+  engine:"Intake assistant and method library search",human:"Scientist confirms the ATP",out:"Structured ATP: attribute, range, accuracy and precision targets",lv:[0,4]},
+ {id:"dev",short:"Develop",name:"Develop the method",phase:"Design",
+  plain:"Scientists try conditions on an instrument (column, flow rate, temperature, mobile phase, gradient) until the separation is good enough and stays good when conditions wobble.",
+  today:["Work starts from a platform method and changes one factor at a time. Conclusions are written as prose in the electronic lab notebook.","Which factor changed, and whether it helped, is buried in attachments and free text.","Instrument settings are typed by hand into the chromatography data system."],
+  future:["A design of experiments is planned around the ATP and the run sequence is sent straight to the instrument.","Every run's parameters and results are captured as data, together with the reason for each change.","Models map the robust operating region and propose the next experiment. The loop closes without retyping."],
+  engine:"Experiment planner linked to instrument control",human:"Scientist accepts the proposed design space",out:"Parameter and result history, design space, development report",lv:[1,4]},
+ {id:"risk",short:"Assess risk",name:"Assess the risks",phase:"Design",
+  plain:"Before the method is fixed, the team scores what could go wrong: which parameters move the result, how badly, and how each risk will be controlled.",
+  today:["Risk assessments are filled in spreadsheet templates.","Scores have no link to the development data that should justify them.","Risks and failures from similar methods are hard to find and reuse."],
+  future:["The risk register is pre-filled from development history. Every parameter that moved a result becomes a scored risk with its evidence attached.","Risks seen on similar methods are suggested automatically.","Controls flow into the method as system suitability limits, and become the justification for established conditions under ICH Q12 and Q14."],
+  engine:"Risk engine reading the parameter history",human:"Team reviews and approves the scores",out:"Scored risks, controls, established conditions",lv:[0,3]},
+ {id:"val",short:"Validate",name:"Validate",phase:"Qualify",
+  plain:"Formal experiments prove the method is fit for purpose: accuracy, precision, specificity, linearity, range and robustness, as ICH Q2(R2) describes.",
+  today:["Protocols and reports are assembled by hand. Results are copied from the chromatography system into document tables.","Reviewers spend much of their time checking transcribed numbers."],
+  future:["The protocol is generated from the ATP and the risk assessment, so acceptance criteria are inherited instead of retyped.","Results flow from the instrument into the report, and every number links back to the injection it came from.","Reviewers look at the exceptions the system flags instead of every value."],
+  engine:"Protocol and report generator with full data lineage",human:"Quality approves protocol and report by e-signature",out:"Validated method version 1.0 and its evidence",lv:[1,3]},
+ {id:"exec",short:"Run",name:"Digitise and run",phase:"Operate",
+  plain:"The approved method becomes the standard test used every day to release batches and test stability samples.",
+  today:["The method lives as a PDF. Analysts read it and set up the instrument by hand.","Sample details sit in the lab information system and results in the chromatography system. Joining them needs a shared ID that often does not exist.","Deviations are found after the run, when samples are already used."],
+  future:["The method is a machine-readable object. Version-controlled parameters configure the instrument and guide the analyst step by step.","Sample, sequence and result carry one identifier from request to report.","System suitability is checked live, so a failing run stops before samples are consumed."],
+  engine:"Digital method, lab execution system, instrument control",human:"Analyst loads samples; the system guides and records",out:"Results tied to sample, method version, instrument and run",lv:[1,4]},
+ {id:"tt",short:"Transfer",name:"Transfer to other sites",phase:"Operate",
+  plain:"The method moves from development to commercial quality control labs, often at other sites with different instruments.",
+  today:["Hand-over is a package of documents, and parameters are re-entered at the receiving site.","Development history rarely travels with the method, so the receiving lab repeats work.","Instrument differences show up late, during comparative testing."],
+  future:["Method, history and risks move as one machine-readable package.","Parameters are translated automatically to the receiving site's instrument models, for example gradient delay volume.","Comparative testing is designed and evaluated automatically, with the equivalence result on screen."],
+  engine:"Transfer package and instrument translation service",human:"Receiving lab approves equivalence",out:"Same method version live at every site",lv:[0,4]},
+ {id:"mon",short:"Monitor",name:"Monitor performance",phase:"Verify",
+  plain:"Every run also reports on the method itself: system suitability, reference standard results, reruns. Trending those catches drift before it causes a failure. USP <1220> calls this ongoing procedure performance verification; labs often call it track and trend.",
+  today:["Trending exists only for selected methods and sites, built by hand in spreadsheets or one-off dashboards.","When a run is reprocessed, it is unclear which result is the valid one.","Operations data and development data sit in different stores with different validation status."],
+  future:["Every run from every site streams into one validated data platform.","The rule for which result counts is applied once, in the data layer, instead of in each chart.","Drift is predicted from system suitability trends, and maintenance or a column change is triggered before anything fails."],
+  engine:"Streaming data platform and trend models",human:"Method owner acts on alerts",out:"Alerts, predicted failures, right-first-time rate per site",lv:[1,5]},
+ {id:"chg",short:"Improve",name:"Change and improve",phase:"Verify",
+  plain:"Methods change: a new column supplier, better technology, a trend that needs fixing. Every change has to be assessed, approved and recorded.",
+  today:["Change forms are written by hand and impact is assessed from memory.","Nobody can easily see which products, sites and filings use a given method version."],
+  future:["A trend or a supplier notice opens a change proposal automatically, showing the difference between versions.","The impact assessment is drafted from the method's links: products, sites, filings and established conditions.","Once approved, the new version reaches every instrument and site at once. If needed, the loop starts again at development."],
+  engine:"Change assistant linked to the quality system",human:"Change board approves",out:"New method version, updated everywhere",lv:[0,3]}
+];
+const SYS=[
+ {a:"ELN",n:"Electronic lab notebook",p:"Where development experiments are recorded.",f:"Sends structured experiment data, receives planned designs."},
+ {a:"LIMS",n:"Lab information system",p:"Samples, tests, specifications and release.",f:"Shares the sample identifier every result hangs on."},
+ {a:"CDS",n:"Chromatography data system",p:"Controls instruments and processes the raw signal.",f:"Receives method parameters, returns results and suitability."},
+ {a:"LES",n:"Lab execution system",p:"Guides analysts step by step at the bench.",f:"Runs the current method version, records every step."},
+ {a:"INST",n:"Instruments and inventory",p:"HPLC systems, columns, reagents, reference standards.",f:"Master data so a method knows what it can run on."},
+ {a:"QMS",n:"Quality and change control",p:"Deviations, change requests, approvals.",f:"Receives drafted changes and impact assessments."},
+ {a:"DATA",n:"Validated data platform",p:"Where every run lands for trending and analytics.",f:"Applies the result rules once; feeds dashboards and models."},
+ {a:"REG",n:"Regulatory filings",p:"What was promised to health authorities.",f:"Links each method version to the established conditions it must respect."}
+];
+const FOUND=[
+ ["One identifier from sample to result","Automatic trending needs every result tied to its sample, method version, instrument and run. If the lab system and the chromatography system use different keys, someone joins them by hand, and automation stops there.","Ask early: which field links a result in the chromatography system to a sample in the lab information system? If nobody can answer, that is the first project."],
+ ["Decide once which result counts","Runs get reprocessed. If each dashboard decides for itself which result is valid, two charts of the same data will disagree.","Example rule: only the latest result per injection and detector channel is valid. Apply it in the data layer and keep the older ones for counting reprocessing."],
+ ["Put GMP data in a validated home","Routine release data is GMP data and must land in a validated store. Development data often lives outside that validation boundary.","Comparing development with commercial performance needs a deliberate, qualified bridge between the two stores, planned from the start."],
+ ["Make the method machine-readable","A method stored as a PDF can be read by people only. Parameters, steps and limits need to be data, with versions and change history.","The same method object should configure the instrument, drive the bench steps and feed the report."],
+ ["Treat inventories as infrastructure","A system cannot pick an instrument or a column it does not know about. Instrument, column, material and reference standard master data are prerequisites.","Build the inventory before the future state diagram assumes one exists."],
+ ["Capture the reason for every change","Development knowledge is lost when conclusions are prose. Record which factor changed, why, and whether it helped.","That record is what lets a risk assessment fill itself in, and what the receiving site needs at transfer."],
+ ["Keep people on the decisions that carry liability","Fully digital does not mean unsupervised. GMP decisions need accountable approval with electronic signatures (21 CFR Part 11, EU Annex 11).","Let machines draft, calculate and flag. Let people approve, with the evidence one click away."],
+ ["Prove it on one method first","Start with a narrow, valuable slice: for example automatic trending of system suitability for one size-exclusion method at two sites.","Scale to more methods and techniques once the identifiers and result rules have survived real data."]
+];
+const GLOSS=[
+ ["ATP","Analytical Target Profile. What the measurement must achieve, written before choosing the technique."],
+ ["ARA","Analytical risk assessment. A scored list of what could make results wrong and how each risk is controlled."],
+ ["SST","System suitability test. Checks run with each sequence to prove the system works that day, such as resolution and peak tailing."],
+ ["SEC","Size-exclusion chromatography. Separates molecules by size; used to measure antibody aggregates."],
+ ["DoE","Design of experiments. Changing several factors together in a planned way to learn more from fewer runs."],
+ ["CDS","Chromatography data system. Software that controls instruments and processes their signals."],
+ ["LIMS","Laboratory information management system. Tracks samples, tests and results for release."],
+ ["ELN / LES","Electronic lab notebook for development work; lab execution system for guided routine work."],
+ ["Tech transfer","Moving a method to another lab or site and proving it gives equivalent results there."],
+ ["Track and trend","Watching method performance over time to catch drift early. USP <1220> stage 3."],
+ ["Established conditions","The parameters promised to regulators that need approval to change (ICH Q12)."],
+ ["GMP / GxP","Good manufacturing (or other) practice. Rules that make data trustworthy enough to release medicines on."]
+];
+const RUN={
+ future:[
+  ["need","Request <b>R-0417</b>: quantify high molecular weight species in mAb-X drug substance. Library match: <b>platform SEC method v3.2</b>, fit 87%. ATP drafted: HMW 0.1 to 10.0%, precision RSD ≤ 5%. <span class='ok'>Signed by scientist.</span>"],
+  ["dev","DoE planned: <b>4 factors</b> (column temperature, flow, salt, pH), <b>19 runs</b>. Sequence sent to HPLC-07. 19 of 19 runs captured as data. Robust region: flow 0.4 to 0.6 mL/min, 25 to 35 °C."],
+  ["risk","<b>11 risks</b> pre-scored from run history; 2 high: salt concentration on resolution, column lot on tailing. Control added to SST: <b>Rs ≥ 1.5</b> between aggregate and monomer. <span class='ok'>Approved.</span>"],
+  ["val","ICH Q2(R2) protocol generated. <b>214 results</b> linked to their injections. <span class='ok'>0 exceptions.</span> Quality e-signature applied. Method <b>v1.0</b> released."],
+  ["exec","v1.0 published to the bench system and instruments in 3 labs. First routine run: SST pass, <b>Rs 2.3</b>, tailing 1.08, 9,800 plates. Results carry sample ID <b>S-55120</b> end to end."],
+  ["tt","Package sent to Site B (different instrument vendor). Gradient delay volume translated automatically. Equivalence test passed: difference <b>0.03%</b> against a ±0.3% limit."],
+  ["mon","<b>1,240 runs</b> trended across 3 sites. <span class='warn'>Drift alert:</span> resolution falling 0.02 per week on column lot C-55. Predicted SST failure in about 3 weeks."],
+  ["chg","Change proposal <b>CP-0932</b> opened automatically: switch column lot. Impact drafted: 2 products, 3 sites, 1 filing, no established condition affected. <span class='ok'>Approved. v1.1 live everywhere.</span> Loop continues."]
+ ],
+ today:[
+  ["need","Email to the lab head: can someone develop an aggregate method for mAb-X? <span class='warn'>Forwarded twice. Waiting.</span>"],
+  ["dev","Platform method copied from a PDF. One factor changed at a time. Conclusions typed into the notebook. Settings <span class='warn'>re-typed</span> into the instrument software."],
+  ["risk","Spreadsheet template filled from memory in a workshop. Scores not linked to the data behind them."],
+  ["val","Results copied from the chromatography system into document tables. <span class='warn'>Reviewer checks every number by hand.</span>"],
+  ["exec","Method released as a PDF. Analysts set up instruments by hand. The sample ID in the lab system does not match the sample set ID in the chromatography system."],
+  ["tt","Document package emailed to Site B. Parameters re-entered. <span class='warn'>Development history stays behind.</span> Comparative testing finds an instrument difference late."],
+  ["mon","Trending built in a spreadsheet for this one method. Reprocessed runs counted twice until someone notices."],
+  ["chg","Column lot fails SST at Site B. <span class='warn'>Investigation opened after the failure.</span> Change form and impact assessment written by hand."]
+ ]
+};
+
+let mode="future", cur=0, runIdx=0, timer=null;
+const $=s=>document.querySelector(s);
+const cssv=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
+try{const m=localStorage.getItem("amdb-mode"); if(m==="today"||m==="future") mode=m}catch(e){}
+
+/* ---------- ring ---------- */
+const svg=$("#ring"), NS="http://www.w3.org/2000/svg";
+const CX=300,CY=285,R=205;
+const ang=i=>(-90+i*45)*Math.PI/180;
+const pos=i=>[CX+R*Math.cos(ang(i)),CY+R*Math.sin(ang(i))];
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e}
+let segs=[],spokes=[],gapLbls=[],particles=[],nodes=[];
+function buildRing(){
+  svg.innerHTML="";
+  const gSp=el("g",{});
+  STAGES.forEach((s,i)=>{const[x,y]=pos(i);spokes.push(el("line",{x1:CX,y1:CY,x2:x,y2:y,class:"spoke"},gSp))});
+  const gRing=el("g",{});
+  const gaps=["email","PDF","spreadsheet","retyped","PDF","email","spreadsheet","memory"];
+  STAGES.forEach((s,i)=>{
+    const a0=ang(i)+0.2,a1=ang(i+1)-0.2;
+    const d=`M${CX+R*Math.cos(a0)} ${CY+R*Math.sin(a0)} A${R} ${R} 0 0 1 ${CX+R*Math.cos(a1)} ${CY+R*Math.sin(a1)}`;
+    segs.push(el("path",{d,class:"ring-seg"},gRing));
+    const am=(ang(i)+ang(i+1))/2, rr=R+26;
+    const gx=CX+rr*Math.cos(am), gy=CY+rr*Math.sin(am);
+    const gg=el("g",{transform:`rotate(-2 ${gx} ${gy})`},gRing);
+    const w=gaps[i].length*6.6+12;
+    el("rect",{x:gx-w/2,y:gy-9,width:w,height:18,class:"gap-bg"},gg);
+    const t=el("text",{x:gx,y:gy+4,class:"gap-lbl"},gg);t.textContent=gaps[i];gapLbls.push(gg);
+  });
+  // hub
+  const hub=el("g",{});
+  el("rect",{x:CX-96,y:CY-96,width:192,height:192,fill:"none",stroke:"#000","stroke-width":1,"stroke-dasharray":"3 5",id:"hub-o"},hub);
+  el("rect",{x:CX-82,y:CY-62,width:164,height:124,fill:"#fff",stroke:"#000","stroke-width":1.5,id:"hub-c"},hub);
+  el("rect",{x:CX-82,y:CY-62,width:164,height:10,fill:"var(--mode)",stroke:"#000","stroke-width":1.5,id:"hub-band"},hub);
+  const t1=el("text",{x:CX,y:CY-6,class:"hub-t","font-size":24,id:"hub-t"},hub);
+  const t2=el("text",{x:CX,y:CY+16,class:"hub-s",id:"hub-s1"},hub);
+  const t3=el("text",{x:CX,y:CY+31,class:"hub-s",id:"hub-s2"},hub);
+  const gP=el("g",{});
+  particles=[];
+  for(let k=0;k<14;k++)particles.push({e:el("circle",{r:k<8?5:3.5,fill:"var(--yellow)",stroke:"#000","stroke-width":1},gP),t:Math.random(),k});
+  STAGES.forEach((s,i)=>{
+    const[x,y]=pos(i);
+    const g=el("g",{class:"node",tabindex:0,role:"button","aria-label":s.name});
+    const tint={Design:"var(--t-sage)",Qualify:"var(--t-salmon)",Operate:"var(--t-sky)",Verify:"var(--t-peri)"}[s.phase];
+    el("rect",{x:x-46,y:y-36,width:92,height:72,class:"base",fill:tint},g);
+    el("circle",{cx:x,cy:y-36,r:12,class:"numc"},g);
+    const n=el("text",{x,y:y-32,class:"num"},g);n.textContent=String(i+1);
+    const words=s.short.split(" ");
+    words.forEach((w,j)=>{const t=el("text",{x,y:y+11+j*17-(words.length-1)*8},g);t.textContent=w});
+    g.addEventListener("click",()=>select(i));
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(i)}});
+    nodes.push(g);
+  });
+}
+function paintRing(){
+  const fut=mode==="future";
+  segs.forEach(p=>{p.setAttribute("stroke-dasharray",fut?"":"7 7")});
+  spokes.forEach(l=>{l.style.opacity=fut?1:0});
+  gapLbls.forEach(t=>t.style.opacity=fut?0:1);
+  $("#hub-t").textContent=fut?"Method DB":"?";
+  $("#hub-s1").textContent=fut?"one method record":"no single home";
+  $("#hub-s2").textContent=fut?"read and written by all":"files, drives, inboxes";
+  $("#hub-o").style.opacity=fut?1:0;$("#hub-c").setAttribute("stroke-dasharray",fut?"":"6 5");
+  particles.forEach(p=>p.e.style.opacity=fut?1:(p.k<8?.9:0));
+  $("#legend").innerHTML=fut?"<span><i></i>Data flows automatically between steps</span><span><i style='border-top-width:1.5px'></i>Every step reads and writes the hub</span>"
+    :"<span><i></i>Hand-offs by document, email or retyping</span><span>No shared record in the middle</span>";
+}
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function animate(ts){
+  const fut=mode==="future";
+  particles.forEach(p=>{
+    const speed=fut?0.00006:0.000018;
+    p.t=(p.t+speed*16)%1;
+    let x,y;
+    if(p.k<8||!fut){
+      let a=-Math.PI/2+p.t*2*Math.PI;
+      if(!fut){ // stall at each node for a while: stepwise
+        const seg=p.t*8, fr=seg%1, base=Math.floor(seg);
+        const f=fr<0.7?0:(fr-0.7)/0.3;
+        a=-Math.PI/2+(base+f)*Math.PI/4;
+      }
+      x=CX+R*Math.cos(a);y=CY+R*Math.sin(a);
+    }else{ // spokes: hub out and back
+      const i=p.k%8, f=Math.abs(((p.t*2)%2)-1);
+      const[nx,ny]=pos(i);x=CX+(nx-CX)*(0.4+0.6*f);y=CY+(ny-CY)*(0.4+0.6*f);
+    }
+    p.e.setAttribute("cx",x);p.e.setAttribute("cy",y);
+  });
+  if(!reduce)requestAnimationFrame(animate);
+}
+
+/* ---------- panel ---------- */
+function meter(v,cls){let s="";for(let i=0;i<6;i++)s+=`<i class="${i<=v&&v>=0?cls:""}"></i>`;return s}
+const LV=["manual","assisted","partial","supervised","autonomous, human signs","autonomous"];
+function renderPanel(){
+  const s=STAGES[cur], fut=mode==="future";
+  $("#panel").innerHTML=`
+   <div class="panel-top">
+     <div class="row"><span class="eyebrow">Step ${String(cur+1).padStart(2,"0")} of 08 · ${s.phase}</span><span class="sticker">${fut?"fully digital":"today"}</span></div>
+     <h3 style="font-size:1.6rem">${s.name}</h3>
+     <p class="plain">${s.plain}</p>
+   </div>
+   <div class="panel-body">
+     <div><div class="list-h">${fut?"How it runs when digital":"How it works today"}</div>
+       <ul class="pts">${(fut?s.future:s.today).map(x=>`<li>${x}</li>`).join("")}</ul></div>
+     <div class="auto">
+       <div class="auto-row"><span>Today</span><div class="meter">${meter(s.lv[0],"t")}</div></div>
+       <div class="auto-row"><span>Digital</span><div class="meter">${meter(s.lv[1],"f")}</div></div>
+       <div class="meter-lbl"><span>level 0 manual</span><span>level 5 autonomous</span></div>
+       <p class="note">Automation level, illustrative: today <b>${s.lv[0]}</b> (${LV[s.lv[0]]}), digital <b>${s.lv[1]}</b> (${LV[s.lv[1]]}).</p>
+     </div>
+   </div>
+   <div class="facts">
+     <div><span class="eyebrow">What does the work</span><span>${fut?s.engine:"People, documents and email"}</span></div>
+     <div><span class="eyebrow">The human role</span><span>${fut?s.human:"Does, checks and re-enters everything"}</span></div>
+     <div><span class="eyebrow">Hands on</span><span>${fut?s.out:"Files that the next step reads and retypes"}</span></div>
+   </div>`;
+}
+function select(i){
+  cur=i;
+  nodes.forEach((n,j)=>n.classList.toggle("on",j===i));
+  document.querySelectorAll("#chips button").forEach((b,j)=>b.setAttribute("aria-pressed",j===i));
+  renderPanel();
+}
+
+/* ---------- console ---------- */
+function stageIdx(id){return STAGES.findIndex(s=>s.id===id)}
+function step(){
+  const lines=RUN[mode];
+  if(runIdx>=lines.length){stop();$("#con-state").textContent="complete";return false}
+  const[id,txt]=lines[runIdx];const i=stageIdx(id);
+  const d=document.createElement("div");d.className="ln "+(mode==="future"?"f":"t");
+  d.innerHTML=`<span class="tag">${STAGES[i].short}</span><span>${txt}</span>`;
+  $("#log").appendChild(d);$("#log").scrollTop=$("#log").scrollHeight;
+  select(i);runIdx++;
+  $("#con-state").textContent=`step ${runIdx} of ${lines.length}`;
+  return true;
+}
+function stop(){clearInterval(timer);timer=null;$("#run-btn").textContent="Run the example"}
+function reset(){stop();runIdx=0;$("#log").innerHTML=`<div class="ln"><span class="tag">ready</span><span>${mode==="future"?"Fully digital view. Press run to send request R-0417 through the loop.":"Today view. Press run to follow the same request through documents and inboxes."}</span></div>`;$("#con-state").textContent="idle"}
+$("#run-btn").onclick=()=>{
+  if(timer){stop();return}
+  if(runIdx>=RUN[mode].length)reset();
+  step();timer=setInterval(()=>{if(!step())stop()},mode==="future"?1600:2600);
+  $("#run-btn").textContent="Pause";
+};
+$("#step-btn").onclick=()=>{stop();if(runIdx>=RUN[mode].length)reset();step()};
+$("#reset-btn").onclick=reset;
+
+/* ---------- static sections ---------- */
+function renderStatic(){
+  const fut=mode==="future";
+  $("#hero-lede").textContent=fut
+   ?"In the fully digital version, a method is a living data object. It is planned, run, checked, moved between sites, watched and improved by connected systems, and people make the decisions that carry responsibility."
+   :"Today, most of a method's life happens in documents, spreadsheets and inboxes. Each step works, but the next step has to read, retype and re-check what the last one produced.";
+  $("#h-word").textContent=fut?"self-driving":"hand-carried";
+  $("#scope-pill").textContent=fut?"auto-integrated · SST live":"integrated by hand";
+  $("#scope-foot").innerHTML=fut
+   ?"<span>Rs <b>2.3</b> ≥ 1.5 ✓</span><span>tailing <b>1.08</b> ≤ 1.5 ✓</span><span>plates <b>9,800</b></span><span>HMW <b>1.4%</b></span><span>trend: <b>stable</b></span>"
+   :"<span>Rs: <b>check in report</b></span><span>tailing: <b>copied to template</b></span><span>trend: <b>not tracked</b></span>";
+  $("#hub-lede").textContent=fut
+   ?"The centralized method DB does not replace the lab's systems. It holds the method record they all share, so each system reads the current version and writes back what happened."
+   :"Today these systems each hold a piece of the method. People carry information between them by exporting, emailing and retyping.";
+  $("#sys").innerHTML=SYS.map(s=>`<div><span class="abbr">${s.a}</span><h3>${s.n}</h3><p>${s.p}</p><span class="flow">${fut?s.f:"Linked to the others by people and files."}</span></div>`).join("");
+}
+$("#found").innerHTML=FOUND.map((f,i)=>`<article><span class="n">${String(i+1).padStart(2,"0")}</span><h3>${f[0]}</h3><p>${f[1]}</p><div class="ex">${f[2]}</div></article>`).join("");
+$("#gloss").innerHTML=GLOSS.map(g=>`<div><dt>${g[0]}</dt><dd>${g[1]}</dd></div>`).join("");
+$("#chips").innerHTML=STAGES.map((s,i)=>`<button id="chip-${s.id}" aria-pressed="false">${i+1}. ${s.short}</button>`).join("");
+document.querySelectorAll("#chips button").forEach((b,i)=>b.onclick=()=>select(i));
+
+/* ---------- chromatogram ---------- */
+const cv=$("#chrom"),cx=cv.getContext("2d");let scan=0;
+function gauss(x,m,s,h){return h*Math.exp(-((x-m)**2)/(2*s*s))}
+function sig(t,fut){ // t minutes 0..20
+  let y=gauss(t,7.6,0.28,0.06)+gauss(t,9.4,0.33,1)+gauss(t,12.1,0.35,0.035)+gauss(t,16.5,0.25,0.02);
+  if(!fut)y+=Math.sin(t*9)*0.004+Math.sin(t*23)*0.003+ (t*0.002);
+  return y;
+}
+function drawChrom(){
+  const fut=mode==="future";
+  const w=cv.clientWidth,h=cv.clientHeight,dpr=devicePixelRatio||1;
+  if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr}
+  cx.setTransform(dpr,0,0,dpr,0,0);cx.clearRect(0,0,w,h);
+  const L=34,B=h-26,T=18,Rr=w-8;
+  const X=t=>L+(t/20)*(Rr-L), Y=v=>B-(Math.min(v,1.05)/1.05)*(B-T);
+  cx.strokeStyle="#d9d9d9";cx.lineWidth=1;cx.font="11px "+cssv("--f-mono");cx.fillStyle="#000";
+  for(let m=0;m<=20;m+=4){cx.beginPath();cx.moveTo(X(m),T);cx.lineTo(X(m),B);cx.stroke();cx.fillText(m,X(m)-4,h-8)}
+  cx.fillText("min",Rr-24,h-8);
+  cx.save();cx.translate(11,B-10);cx.rotate(-Math.PI/2);cx.fillText("mAU",0,0);cx.restore();
+  const col="#000";
+  const end=Math.min(20,scan);
+  // fill
+  if(fut){
+    [[7.0,8.2,"HMW"],[8.6,10.3,"monomer"],[11.4,12.8,"LMW"]].forEach(([a,b,lab])=>{
+      if(end<a)return;
+      cx.beginPath();cx.moveTo(X(a),B);
+      for(let t=a;t<=Math.min(b,end);t+=0.02)cx.lineTo(X(t),Y(sig(t,true)));
+      cx.lineTo(X(Math.min(b,end)),B);cx.closePath();
+      cx.fillStyle=cssv("--future");cx.fill();cx.strokeStyle="#000";cx.lineWidth=1;cx.stroke();
+    });
+  }
+  cx.beginPath();cx.strokeStyle=col;cx.lineWidth=2;
+  for(let t=0;t<=end;t+=0.02){const x=X(t),y=Y(sig(t,fut));t===0?cx.moveTo(x,y):cx.lineTo(x,y)}
+  cx.stroke();
+  // labels
+  cx.fillStyle="#000";cx.font="500 11px "+cssv("--f-mono");
+  const lbl=[[7.6,0.06,"aggregate"],[9.4,1,"monomer"],[12.1,0.035,"fragment"]];
+  lbl.forEach(([m,v,s])=>{if(end>m+0.5){const tx=X(m)+(s==="monomer"?10:-20);cx.fillText(s,tx,Y(v)-(s==="monomer"?-4:8))}});
+  if(end>=20){cx.fillStyle="#000";cx.font="11px "+cssv("--f-mono");cx.fillText(fut?"peaks integrated and trended automatically":"export, integrate, copy into template",L+6,T+8)}
+  // scan line
+  if(scan<20){cx.strokeStyle=cssv("--red");cx.globalAlpha=.8;cx.beginPath();cx.moveTo(X(end),T);cx.lineTo(X(end),B);cx.stroke();cx.globalAlpha=1}
+}
+function chromLoop(){scan+=mode==="future"?0.09:0.05; if(scan>26)scan=0; drawChrom(); if(!reduce)requestAnimationFrame(chromLoop)}
+addEventListener("resize",drawChrom);
+
+/* ---------- mode ---------- */
+function setMode(m){
+  mode=m;document.body.classList.toggle("today",m==="today");
+  $("#m-today").setAttribute("aria-pressed",m==="today");$("#m-future").setAttribute("aria-pressed",m==="future");
+  try{localStorage.setItem("amdb-mode",m)}catch(e){}
+  paintRing();renderPanel();renderStatic();reset();scan=reduce?20:0;drawChrom();if(window.x3Mode)window.x3Mode();
+}
+$("#m-today").onclick=()=>setMode("today");$("#m-future").onclick=()=>setMode("future");
+
+buildRing();select(0);setMode(mode);
+if(reduce){scan=20;drawChrom();animate()}else{requestAnimationFrame(animate);requestAnimationFrame(chromLoop)}
+</script>
+<script>
+/* ================= 3D integration view ================= */
+(function(){
+const SYS3=[
+ {id:"ELN",name:"Lab notebook",long:"Electronic lab notebook"},
+ {id:"LIMS",name:"LIMS",long:"Lab information management system"},
+ {id:"CDS",name:"Chromatography data",long:"Chromatography data system"},
+ {id:"LES",name:"Lab execution",long:"Lab execution system"},
+ {id:"INV",name:"Inventory",long:"Instrument, column, material and standard master data"},
+ {id:"QMS",name:"Quality / change",long:"Quality management and change control"},
+ {id:"DATA",name:"Data platform",long:"Validated data platform with event streaming"},
+ {id:"REG",name:"Regulatory",long:"Regulatory information and filings"},
+ {id:"AI",name:"Models",long:"Analytics and AI models"}
+];
+const SITES=[{id:"DEV",name:"Development lab"},{id:"QCA",name:"QC site A"},{id:"QCB",name:"QC site B"}];
+// [stage, system, dir ('out' = DB sends, 'in' = DB receives, 'both'), what moves, interface, today]
+const L=[
+ ["need","LIMS","in","Specifications and product attributes the method must measure","API","Specification PDF read by hand"],
+ ["need","REG","in","Methods and commitments already filed for similar products","API","Searched in submission documents"],
+ ["need","AI","both","Draft ATP proposed from similar products and limits","model service","Written from scratch"],
+ ["dev","ELN","both","Planned experiments out, observations and reasons for each change back","API, structured templates","Free text and attachments"],
+ ["dev","CDS","both","Instrument methods and sequences out, peaks and suitability results back","AnIML or Allotrope ASM","Settings retyped, results exported as PDF"],
+ ["dev","DEV","both","Design of experiments run on the bench instruments","SiLA 2 or OPC UA LADS","Set up at the instrument by hand"],
+ ["dev","INV","in","Which columns, reagents and standards are available and qualified","master data API","Checked in the cupboard"],
+ ["dev","AI","both","Design space model and the next experiment to run","model service","Judgement, one factor at a time"],
+ ["risk","ELN","in","Parameter history with the effect of every change","API","Read back from the notebook"],
+ ["risk","QMS","in","Deviations and CAPAs on similar methods","API","Asked around"],
+ ["risk","AI","both","Suggested risk scores with the evidence attached","model service","Workshop from memory"],
+ ["val","LIMS","both","Validation samples registered, results returned","API, shared sample ID","Sample list in a spreadsheet"],
+ ["val","CDS","in","Every result with its injection lineage","Allotrope ASM","Copied into report tables"],
+ ["val","QMS","both","Protocol and report approval with e-signature","21 CFR Part 11 workflow","Signed PDFs"],
+ ["exec","LES","out","Method steps, limits and calculations for guided execution","API","Analyst reads a PDF"],
+ ["exec","CDS","out","Processing method and suitability limits, one version everywhere","vendor API or AnIML","Rebuilt by hand per lab"],
+ ["exec","QCA","both","Instrument configured, run status reported back","SiLA 2 or OPC UA LADS","Configured manually"],
+ ["exec","QCB","both","Instrument configured, run status reported back","SiLA 2 or OPC UA LADS","Configured manually"],
+ ["exec","LIMS","both","Sample ID in, reportable result out on the same identifier","shared identifier","IDs differ between systems"],
+ ["exec","INV","in","Column and standard lot, qualification status","master data API","Written in a logbook"],
+ ["tt","QCB","out","Parameters translated to the receiving lab's instrument models","SiLA 2 or OPC UA LADS","Re-entered at the site"],
+ ["tt","CDS","out","Method package deployed to the receiving lab","vendor API","Rebuilt from documents"],
+ ["tt","QMS","both","Transfer protocol and report","workflow API","Documents by email"],
+ ["tt","DATA","in","Comparative results and equivalence statistics","query API","Spreadsheet statistics"],
+ ["mon","QCA","in","Suitability, reference standard and run events streamed from every run","event stream","Not collected"],
+ ["mon","QCB","in","Suitability, reference standard and run events streamed from every run","event stream","Not collected"],
+ ["mon","DATA","in","Trended results after the rule: latest valid result per injection and channel","validated data platform","Reprocessed runs counted twice"],
+ ["mon","LIMS","in","Batch and sample metadata joined on the shared ID","API","Joined by hand"],
+ ["mon","AI","both","Drift predicted from the suitability trend","model service","Spot checks"],
+ ["mon","QMS","out","Alert opens an investigation or preventive action","workflow API","Found after a failure"],
+ ["chg","QMS","both","Change request drafted with its impact assessment","workflow API","Form written from memory"],
+ ["chg","REG","in","Which established conditions and filings the change touches","API","Regulatory asked by email"],
+ ["chg","LES","out","New method version deployed","API","Updated lab by lab"],
+ ["chg","CDS","out","New processing method deployed","vendor API","Updated lab by lab"],
+ ["chg","DATA","in","Trend evidence that justifies the change","query API","Screenshots of charts"]
+];
+const STREAM=[["QCA","CDS"],["QCB","CDS"],["DEV","CDS"],["CDS","DATA"],["LIMS","DATA"],["DATA","@mon"],["@mon","HUB"],["DATA","AI"],["AI","@mon"]];
+
+const stage=document.getElementById("x3-stage"), canvas=document.getElementById("x3-canvas"), lblBox=document.getElementById("x3-labels"), panel=document.getElementById("x3-panel");
+let sel={type:"stage",id:"exec"}, streamOn=false, spin=!matchMedia("(prefers-reduced-motion: reduce)").matches;
+const tint={Design:"#b3bd95",Qualify:"#d77a7a",Operate:"#9ab6c8",Verify:"#8c9ae0"};
+
+function renderPanel3(){
+  const fut=document.body.classList.contains("today")?false:true;
+  let rows=[],title="",sub="",eyebrow="";
+  if(streamOn){
+    eyebrow="Monitoring stream";title="How performance data reaches the method";
+    sub="Every run at every lab reports on the method. The stream below is what makes track and trend automatic.";
+    rows=[
+      ["QCA","in","Instruments emit suitability results, reference standard injections and run events as they happen.","event stream","Not collected"],
+      ["CDS","in","The chromatography system processes the signal and publishes results with injection, channel and method version.","Allotrope ASM","Exported on request"],
+      ["LIMS","in","Batch and sample context is joined on one shared identifier.","shared identifier","Joined by hand, if at all"],
+      ["DATA","in","The validated platform applies the result rule once and keeps reprocessed results for counting.","validated data platform","Spreadsheet per method"],
+      ["AI","both","Models watch resolution, tailing and plate count for drift and predict when a limit will be crossed.","model service","Spot checks"],
+      ["QMS","out","A predicted failure opens a preventive action before any batch is affected.","workflow API","Investigation after failure"]
+    ];
+  }else if(sel.type==="stage"){
+    const s=STAGES.find(x=>x.id===sel.id);eyebrow=`Step ${STAGES.indexOf(s)+1} · ${s.phase}`;title=s.name;
+    sub=fut?"What the method DB exchanges with other systems in this step.":"How the same information moves today.";
+    rows=L.filter(l=>l[0]===sel.id).map(l=>[l[1],l[2],l[3],l[4],l[5]]);
+  }else{
+    const sy=[...SYS3,...SITES].find(x=>x.id===sel.id);eyebrow=SITES.includes(sy)?"Lab":"System";title=sy.long||sy.name;
+    sub="Every lifecycle step that talks to it.";
+    rows=L.filter(l=>l[1]===sel.id).map(l=>[STAGES.find(s=>s.id===l[0]).short,l[2],l[3],l[4],l[5]]);
+  }
+  const dirTxt={out:"DB sends",in:"DB receives",both:"two-way"};
+  panel.innerHTML=`<div class="panel-top"><div class="row"><span class="eyebrow">${eyebrow}</span><span class="sticker">${fut?"fully digital":"today"}</span></div><h3>${title}</h3><p class="plain">${sub}</p></div>
+   <div class="panel-body"><ul class="x3-links">${rows.map(r=>`<li><span class="sid">${r[0]}</span>${fut
+     ?`<span class="dir">${dirTxt[r[1]]}</span><span class="what">${r[2]}</span><span class="std">${r[3]}</span>`
+     :`<span class="dir">manual</span><span class="what">${r[2]}</span><span class="was"><b>Today:</b> ${r[4]}</span>`}</li>`).join("")}</ul>
+   <p class="note">${rows.length} connection${rows.length===1?"":"s"}. Pick another step or system in the model.</p></div>`;
+}
+
+if(typeof THREE==="undefined"){renderPanel3();document.getElementById("x3-fallback").hidden=false;return}
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false})}catch(e){renderPanel3();document.getElementById("x3-fallback").hidden=false;return}
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setClearColor(0xffffff,1);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(38,1,0.1,200);
+scene.add(new THREE.AmbientLight(0xffffff,0.78));
+const dl=new THREE.DirectionalLight(0xffffff,0.45);dl.position.set(6,14,8);scene.add(dl);
+
+const Y={stage:6,hub:2.6,sys:-0.6,site:-4};
+const P={}; // anchor positions
+const objs={};
+function box(w,h,d,color,pos,edge=0x000000){
+  const g=new THREE.BoxGeometry(w,h,d);
+  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color}));m.position.copy(pos);scene.add(m);
+  const e=new THREE.LineSegments(new THREE.EdgesGeometry(g),new THREE.LineBasicMaterial({color:edge}));e.position.copy(pos);scene.add(e);
+  return {m,e};
+}
+function plate(r,y,color,opacity){
+  const g=new THREE.CylinderGeometry(r,r,0.08,64);
+  const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color,transparent:true,opacity}));m.position.y=y;scene.add(m);
+  const ring=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([...Array(96)].map((_,i)=>new THREE.Vector3(r*Math.cos(i/96*Math.PI*2),y+0.05,r*Math.sin(i/96*Math.PI*2)))),new THREE.LineBasicMaterial({color:0x000000}));scene.add(ring);
+}
+plate(8.2,Y.stage-0.55,0xb3bd95,0.18);
+plate(10.2,Y.sys-0.45,0xf2f2f2,0.55);
+// floor grid for labs
+const grid=new THREE.GridHelper(26,26,0xbbbbbb,0xdddddd);grid.position.y=Y.site-0.6;scene.add(grid);
+
+// lifecycle ring
+const RS=7;
+STAGES.forEach((s,i)=>{
+  const a=-Math.PI/2+i*Math.PI/4;
+  const p=new THREE.Vector3(RS*Math.cos(a),Y.stage,RS*Math.sin(a));
+  objs[s.id]=box(1.9,0.9,1.3,new THREE.Color(tint[s.phase]).getHex(),p);P[s.id]=p.clone().add(new THREE.Vector3(0,0.2,0));
+});
+// ring path
+const ringPts=[...Array(129)].map((_,i)=>new THREE.Vector3(RS*Math.cos(i/128*Math.PI*2),Y.stage,RS*Math.sin(i/128*Math.PI*2)));
+const ringGeo=new THREE.BufferGeometry().setFromPoints(ringPts);
+const ringLine=new THREE.Line(ringGeo,new THREE.LineDashedMaterial({color:0x000000,dashSize:0.35,gapSize:0.25}));ringLine.computeLineDistances();scene.add(ringLine);
+const ringSolid=new THREE.Line(ringGeo,new THREE.LineBasicMaterial({color:0x000000}));scene.add(ringSolid);
+
+// hub
+const HUBP=new THREE.Vector3(0,Y.hub,0);objs.HUB=box(2.6,2.6,2.6,0xfcc20f,HUBP);P.HUB=HUBP.clone();
+const hubTop=box(2.8,0.18,2.8,0x000000,HUBP.clone().add(new THREE.Vector3(0,1.39,0)));
+
+// systems
+const RY=10;
+SYS3.forEach((s,i)=>{
+  const a=-Math.PI/2+Math.PI/9+i*2*Math.PI/SYS3.length;
+  const p=new THREE.Vector3(RY*0.82*Math.cos(a),Y.sys,RY*0.82*Math.sin(a));
+  const col=s.id==="DATA"?0xc0d4a7:s.id==="AI"?0x8c9ae0:0xffffff;
+  objs[s.id]=box(1.7,0.7,1.2,col,p);P[s.id]=p.clone();
+});
+// labs with instruments
+SITES.forEach((s,i)=>{
+  const x=(i-1)*7.2, z=4.6;
+  const p=new THREE.Vector3(x,Y.site-0.45,z);
+  box(5.4,0.14,3.2,0xa5b8c0,p);
+  for(let k=0;k<3;k++){box(0.9,1.0,0.8,0xffffff,new THREE.Vector3(x-1.6+k*1.6,Y.site+0.12,z-0.3));box(0.9,0.12,0.8,0x000000,new THREE.Vector3(x-1.6+k*1.6,Y.site+0.68,z-0.3))}
+  P[s.id]=new THREE.Vector3(x,Y.site+0.7,z-0.3);objs[s.id]={m:null};
+});
+
+// structural links (thin)
+const thin=new THREE.LineBasicMaterial({color:0x9a9a9a});
+function addLine(a,b,mat){const g=new THREE.BufferGeometry().setFromPoints([a,b]);const l=new THREE.Line(g,mat);scene.add(l);return l}
+const structural=[];
+STAGES.forEach(s=>structural.push(addLine(P[s.id],P.HUB,thin)));
+SYS3.forEach(s=>structural.push(addLine(P.HUB,P[s.id],thin)));
+SITES.forEach(s=>structural.push(addLine(P.CDS,P[s.id],thin)));
+
+// highlighted links
+let hi=[],parts=[];
+const partGeo=new THREE.SphereGeometry(0.16,12,12);
+const partMatA=new THREE.MeshBasicMaterial({color:0xfcc20f}), partMatB=new THREE.MeshBasicMaterial({color:0x000000});
+function curve(a,b){
+  const mid=a.clone().add(b).multiplyScalar(0.5);
+  mid.y+=1.2+a.distanceTo(b)*0.08;
+  mid.x*=0.8;mid.z*=0.8;
+  return new THREE.QuadraticBezierCurve3(a.clone(),mid,b.clone());
+}
+function clearHi(){hi.forEach(o=>{scene.remove(o);o.geometry.dispose()});parts.forEach(p=>scene.remove(p.m));hi=[];parts=[]}
+function linkVia(a,b,dir,fut){
+  const c=curve(P[a],P[b]);
+  if(fut){
+    const t=new THREE.Mesh(new THREE.TubeGeometry(c,48,0.05,6,false),new THREE.MeshBasicMaterial({color:0x000000}));scene.add(t);hi.push(t);
+    const n=dir==="both"?4:3;
+    for(let k=0;k<n;k++){
+      const back=dir==="in"||(dir==="both"&&k%2===1);
+      const m=new THREE.Mesh(partGeo,back?partMatB:partMatA);scene.add(m);parts.push({m,c,t:k/n,back});
+    }
+  }else{
+    const g=new THREE.BufferGeometry().setFromPoints(c.getPoints(48));const l=new THREE.Line(g,new THREE.LineDashedMaterial({color:0xdc1523,dashSize:0.3,gapSize:0.3}));l.computeLineDistances();scene.add(l);hi.push(l);
+  }
+}
+function applySelection(){
+  clearHi();
+  const fut=!document.body.classList.contains("today");
+  const active=new Set();
+  if(streamOn){
+    STREAM.forEach(([a,b])=>{const A=a==="@mon"?"mon":a,B=b==="@mon"?"mon":b;active.add(A);active.add(B);
+      if(fut)linkVia(A,B,"out",true);else linkVia(A,B,"out",false)});
+  }else if(sel.type==="stage"){
+    active.add(sel.id);L.filter(l=>l[0]===sel.id).forEach(l=>{active.add(l[1]);linkVia(sel.id,l[1],l[2]==="in"?"in":l[2],fut)});
+  }else{
+    active.add(sel.id);L.filter(l=>l[1]===sel.id).forEach(l=>{active.add(l[0]);linkVia(l[0],sel.id,l[2],fut)});
+  }
+  if(fut)active.add("HUB");
+  labels.forEach(lb=>{lb.el.classList.toggle("dim",!active.has(lb.id));lb.el.classList.toggle("on",!streamOn&&sel.id===lb.id);lb.el.classList.toggle("hot",streamOn&&active.has(lb.id))});
+  structural.forEach(l=>l.visible=fut);
+  ringLine.visible=!fut;ringSolid.visible=fut;
+  objs.HUB.m.material.color.setHex(fut?0xfcc20f:0xf2f2f2);
+  renderPanel3();
+}
+
+// labels
+const labels=[];
+function addLabel(id,text,cls,pos,onClick){
+  const b=document.createElement("button");b.className="x3-lbl "+cls;b.textContent=text;b.type="button";
+  b.addEventListener("pointerdown",e=>e.stopPropagation());
+  b.addEventListener("click",onClick);lblBox.appendChild(b);labels.push({id,el:b,pos});
+}
+STAGES.forEach((s,i)=>addLabel(s.id,`${i+1} ${s.short}`,"stage",P[s.id].clone().add(new THREE.Vector3(0,0.95,0)),()=>{streamOn=false;syncStream();sel={type:"stage",id:s.id};applySelection()}));
+SYS3.forEach(s=>addLabel(s.id,s.name,"sy",P[s.id].clone().add(new THREE.Vector3(0,0.85,0)),()=>{streamOn=false;syncStream();sel={type:"sys",id:s.id};applySelection()}));
+SITES.forEach(s=>addLabel(s.id,s.name,"site",P[s.id].clone().add(new THREE.Vector3(0,0.9,1.7)),()=>{streamOn=false;syncStream();sel={type:"sys",id:s.id};applySelection()}));
+addLabel("HUB","Centralized method DB","hub",P.HUB.clone().add(new THREE.Vector3(0,2.0,0)),()=>{streamOn=false;syncStream();sel={type:"stage",id:"exec"};applySelection()});
+
+// camera orbit
+let th=0.62, ph=0.98, rad=37, tgt=new THREE.Vector3(0,-0.3,0);
+const DEF={th:0.62,ph:0.98,rad:37};
+function placeCam(){cam.position.set(tgt.x+rad*Math.sin(ph)*Math.sin(th),tgt.y+rad*Math.cos(ph),tgt.z+rad*Math.sin(ph)*Math.cos(th));cam.lookAt(tgt)}
+let drag=null;
+stage.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY};stage.setPointerCapture(e.pointerId);spin=false;syncSpin()});
+stage.addEventListener("pointermove",e=>{if(!drag)return;th-=(e.clientX-drag.x)*0.006;ph=Math.min(1.45,Math.max(0.25,ph-(e.clientY-drag.y)*0.005));drag={x:e.clientX,y:e.clientY}});
+stage.addEventListener("pointerup",()=>drag=null);stage.addEventListener("pointercancel",()=>drag=null);
+stage.addEventListener("wheel",e=>{e.preventDefault();rad=Math.min(55,Math.max(16,rad*(1+Math.sign(e.deltaY)*0.08)))},{passive:false});
+
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;
+  const narrow=w<560;cam.fov=narrow?50:38;cam.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(stage);resize();
+
+const v=new THREE.Vector3();
+function frame(){
+  if(spin)th+=0.0022;
+  placeCam();
+  parts.forEach(p=>{p.t=(p.t+0.006)%1;const tt=p.back?1-p.t:p.t;p.m.position.copy(p.c.getPoint(tt))});
+  renderer.render(scene,cam);
+  const w=stage.clientWidth,h=stage.clientHeight;
+  labels.forEach(lb=>{v.copy(lb.pos).project(cam);lb.el.style.transform=`translate(${(v.x*0.5+0.5)*w}px,${(-v.y*0.5+0.5)*h}px) translate(-50%,-50%)`;lb.el.style.zIndex=String(1000-Math.round(v.z*1000))});
+  requestAnimationFrame(frame);
+}
+// buttons
+const bStream=document.getElementById("x3-stream"),bSpin=document.getElementById("x3-spin");
+function syncStream(){bStream.setAttribute("aria-pressed",streamOn);bStream.textContent=streamOn?"Hide the monitoring stream":"Show the monitoring stream"}
+function syncSpin(){bSpin.setAttribute("aria-pressed",spin)}
+bStream.onclick=()=>{streamOn=!streamOn;syncStream();applySelection()};
+bSpin.onclick=()=>{spin=!spin;syncSpin()};
+document.getElementById("x3-reset").onclick=()=>{th=DEF.th;ph=DEF.ph;rad=DEF.rad};
+syncSpin();
+window.x3Mode=()=>applySelection();
+applySelection();frame();
+})();
+</script>
+
+</body></html>
